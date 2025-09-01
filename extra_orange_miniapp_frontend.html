@@ -1,0 +1,358 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Extra Orange — Mini App</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#0b0b0c; --card:#131315; --text:#f6f6f7; --muted:#9aa0a6; --accent:#ff7a00;
+      --accent-2:#ff9a33; --glass: rgba(255,255,255,0.02);
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Inter,system-ui,Arial;background:linear-gradient(180deg,#070708, #0e0e0f);color:var(--text)}
+    .top{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid rgba(255,255,255,0.03)}
+    .brand{display:flex;align-items:center;gap:10px}
+    .logo{width:40px;height:40px;border-radius:10px;background:linear-gradient(180deg,var(--accent),var(--accent-2));display:flex;align-items:center;justify-content:center;font-weight:700}
+    .title{font-weight:700}
+    main{padding:14px}
+    .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+    .card{background:var(--card);padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,0.03)}
+    .balance{font-size:20px;font-weight:700}
+    .row{display:flex;gap:8px}
+    .btn{padding:8px 12px;border-radius:10px;border:none;font-weight:600;cursor:pointer}
+    .btn.primary{background:var(--accent);color:#140b05}
+    .btn.ghost{background:transparent;border:1px solid rgba(255,255,255,0.04);color:var(--text)}
+    input,select{width:100%;padding:8px;border-radius:10px;border:1px solid rgba(255,255,255,0.03);background:#0b0b0c;color:var(--text);margin-top:8px}
+    .tabs{display:flex;gap:6px;margin:12px 0}
+    .tab{padding:8px 10px;border-radius:10px;background:transparent;border:1px solid rgba(255,255,255,0.02);cursor:pointer}
+    .tab.active{background:linear-gradient(90deg,var(--accent),var(--accent-2));color:#140b05}
+    .list{display:flex;flex-direction:column;gap:8px}
+    .item{display:flex;justify-content:space-between;align-items:center;padding:8px;border-radius:10px;background:var(--glass)}
+    .muted{color:var(--muted);font-size:13px}
+    .small{font-size:13px}
+    footer{padding:10px;position:fixed;left:12px;right:12px;bottom:12px;display:flex;justify-content:center}
+    .lootbox{display:flex;gap:8px;align-items:center}
+    .badge{display:inline-block;padding:6px 8px;border-radius:999px;background:rgba(255,255,255,0.03);font-weight:700}
+    .role-pill{padding:6px 8px;border-radius:8px;background:rgba(255,255,255,0.02)}
+    .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:90px;background:#111;padding:10px 14px;border-radius:10px;border:1px solid rgba(255,255,255,0.04)}
+  </style>
+</head>
+<body>
+  <div class="top">
+    <div class="brand"><div class="logo">🟧</div><div class="title">Extra Orange</div></div>
+    <div class="balance" id="balance">0 ORG</div>
+  </div>
+  <main>
+    <div class="tabs" id="mainTabs">
+      <button class="tab active" data-view="home">Главная</button>
+      <button class="tab" data-view="bank">Банк</button>
+      <button class="tab" data-view="family">Семья</button>
+      <button class="tab" data-view="work">Работа</button>
+      <button class="tab" data-view="ach">Ачивки</button>
+      <button class="tab" data-view="shop">Каталог</button>
+    </div>
+
+    <section id="home" class="view">
+      <div class="grid">
+        <div class="card">
+          <div class="small muted">Оранжевая карта</div>
+          <div class="balance" id="cardBalance">0 ORG</div>
+          <div class="row" style="margin-top:10px">
+            <button class="btn primary" id="dailyBonusBtn">Ежедневный бонус</button>
+            <button class="btn ghost" id="openLoot">Открыть лутбокс</button>
+          </div>
+          <div class="muted small" style="margin-top:8px">Кешбэк, лимиты, RP-семьи — всё внутри.</div>
+        </div>
+        <div class="card">
+          <div class="small muted">Твои роли</div>
+          <div id="rolesWrap"></div>
+          <hr style="margin:8px 0;border:0;border-top:1px solid rgba(255,255,255,0.02)">
+          <div class="small muted">Лутбоксы</div>
+          <div id="lootSummary" style="margin-top:8px"></div>
+        </div>
+      </div>
+
+      <div style="margin-top:12px" class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div><strong>Активности</strong><div class="muted small">Последние действия в RP</div></div>
+          <div><span class="badge" id="xpBadge">XP 0</span></div>
+        </div>
+        <div id="feed" style="margin-top:10px"></div>
+      </div>
+    </section>
+
+    <section id="bank" class="view" style="display:none">
+      <div class="grid">
+        <div class="card">
+          <div class="small muted">Перевод пользователю</div>
+          <input id="toUser" placeholder="username (без @)" />
+          <input id="amount" type="number" placeholder="Сумма ORG" />
+          <button class="btn primary" id="sendBtn">Отправить</button>
+          <div class="muted small" style="margin-top:6px">Дневной лимит: <span id="dailyLimitText">—</span></div>
+        </div>
+
+        <div class="card">
+          <div class="small muted">История транзакций</div>
+          <div id="txList" style="margin-top:8px"></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="family" class="view" style="display:none">
+      <div class="card">
+        <div class="small muted">Текущая семья</div>
+        <div id="familyInfo">—</div>
+        <div style="margin-top:8px"><input id="famName" placeholder="Название семьи" /><button class="btn primary" id="createFam">Создать семью</button></div>
+      </div>
+
+      <div class="card" style="margin-top:12px">
+        <div class="small muted">Управление ролями и лимитами</div>
+        <div id="familyMembers"></div>
+      </div>
+    </section>
+
+    <section id="work" class="view" style="display:none">
+      <div class="card">
+        <div class="small muted">Создать контракт</div>
+        <input id="jobTitle" placeholder="Курьер, Учитель, Инженер" />
+        <input id="jobSalary" type="number" placeholder="зарплата ORG (например 1000)" />
+        <select id="jobFreq"><option value="daily">Ежедневно</option><option value="weekly">Раз в неделю</option><option value="monthly">Раз в месяц</option></select>
+        <button class="btn primary" id="createJobBtn">Оформить</button>
+      </div>
+
+      <div class="card" style="margin-top:12px">
+        <div class="small muted">Твои контракты</div>
+        <div id="jobsList" style="margin-top:8px"></div>
+      </div>
+    </section>
+
+    <section id="ach" class="view" style="display:none">
+      <div class="card">
+        <div class="small muted">Ачивки</div>
+        <div id="achList" style="margin-top:8px"></div>
+      </div>
+
+      <div class="card" style="margin-top:12px">
+        <div class="small muted">Крафт/лотереи</div>
+        <div class="row" style="margin-top:8px"><button class="btn primary" id="openSmallBox">Открыть обычный</button><button class="btn ghost" id="openRareBox">Открыть редкий</button></div>
+      </div>
+    </section>
+
+    <section id="shop" class="view" style="display:none">
+      <div class="card">
+        <div class="small muted">Каталог услуг (RP)</div>
+        <div class="list" id="catalogList" style="margin-top:8px"></div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer>
+    <div class="card" style="width:100%;display:flex;justify-content:space-between;align-items:center">
+      <div class="small muted">Extra Orange — мини-приложение</div>
+      <div><button class="btn ghost" id="exportBtn">Экспорт / Сохранить</button></div>
+    </div>
+  </footer>
+
+  <div id="toast" class="toast" style="display:none"></div>
+
+  <script>
+    // Простая локальная модель данных — всё хранится в localStorage.
+    // Предназначено как автономный HTML мини-приложение (без бэкенда), работающее внутри Telegram WebApp.
+
+    const DBKEY = 'extra_orange_db_v2';
+    const defaultState = {
+      me:{id:1, username:'you', balance:250000, cashback:5, dailyLimit:500000, xp:0},
+      users:[{id:1,username:'you',name:'You'},{id:2,username:'alice',name:'Alice'},{id:3,username:'bob',name:'Bob'}],
+      tx:[],
+      families:[],
+      jobs:[],
+      achievements:[],
+      lootboxes:{common:3,rare:1},
+      feed:[],
+      catalog:[
+        {id:1,title:'Детский сад (месяц)',price:1500},{id:2,title:'Школа (сбор)',price:2500},{id:3,title:'Коммуналка',price:850}
+      ]
+    };
+
+    function load(){
+      const raw = localStorage.getItem(DBKEY);
+      if(!raw) { localStorage.setItem(DBKEY, JSON.stringify(defaultState)); return JSON.parse(JSON.stringify(defaultState)); }
+      try{return JSON.parse(raw)}catch(e){localStorage.setItem(DBKEY, JSON.stringify(defaultState));return JSON.parse(JSON.stringify(defaultState));}
+    }
+    function save(state){ localStorage.setItem(DBKEY, JSON.stringify(state)); }
+
+    let state = load();
+
+    // UI helpers
+    function toast(t){ const el = document.getElementById('toast'); el.textContent = t; el.style.display='block'; setTimeout(()=>el.style.display='none',2500); }
+    function fmt(v){ return (v/100).toFixed(2)+' ORG'; }
+
+    function syncUI(){
+      document.getElementById('balance').textContent = fmt(state.me.balance);
+      document.getElementById('cardBalance').textContent = fmt(state.me.balance);
+      document.getElementById('dailyLimitText').textContent = fmt(state.me.dailyLimit);
+      document.getElementById('xpBadge').textContent = 'XP ' + (state.me.xp||0);
+
+      // roles summary
+      const roles = [];
+      state.families.forEach(f=>{
+        const member = f.members.find(m=>m.userId===state.me.id);
+        if(member) roles.push({family:f.name,role:member.role,limit:member.personalLimit});
+      });
+      const rolesWrap = document.getElementById('rolesWrap'); rolesWrap.innerHTML = '';
+      if(roles.length===0) rolesWrap.innerHTML = '<div class="muted small">Нет семей</div>';
+      else roles.forEach(r=>{ const d = document.createElement('div'); d.innerHTML = `<div><strong>${r.family}</strong> <span class="role-pill">${r.role}</span> <span class="muted small">лимит: ${fmt(r.limit)}</span></div>`; rolesWrap.appendChild(d); });
+
+      // loot summary
+      document.getElementById('lootSummary').innerHTML = `Обычных: ${state.lootboxes.common} • Редких: ${state.lootboxes.rare}`;
+
+      // feed
+      const feed = document.getElementById('feed'); feed.innerHTML = state.feed.slice().reverse().map(x=>`<div class="muted small">${x}</div>`).join('');
+
+      // tx list
+      const txList = document.getElementById('txList'); txList.innerHTML = state.tx.slice().reverse().map(t=>`<div class="item"><div>${t.title||t.type}</div><div class="muted small">${fmt(t.amount)}</div></div>`).join('');
+
+      // family info
+      const famInfo = document.getElementById('familyInfo');
+      if(state.families.length===0) famInfo.innerHTML = '<div class="muted small">Вы не в семье</div>';
+      else{
+        const f = state.families[0]; // single-family demo
+        famInfo.innerHTML = `<div><strong>${f.name}</strong> — бюджет ${fmt(f.budget)} </div>`;
+      }
+
+      // family members
+      const fm = document.getElementById('familyMembers'); fm.innerHTML = '';
+      state.families.forEach(f=>{
+        f.members.forEach(m=>{
+          const usr = state.users.find(u=>u.id===m.userId) || {username:'id'+m.userId};
+          const div = document.createElement('div'); div.className='item';
+          div.innerHTML = `<div>${usr.username} <span class="muted small">(${m.role})</span></div><div><input style="width:100px" data-uid="${m.userId}" value="${(m.personalLimit/100).toFixed(0)}" class="limitInput" /></div>`;
+          fm.appendChild(div);
+        });
+      });
+
+      // jobs
+      const jl = document.getElementById('jobsList'); jl.innerHTML = state.jobs.map(j=>`<div class="item"><div>${j.title} • ${j.freq}</div><div class="muted small">${fmt(j.salary)} • next: ${new Date(j.nextRun).toLocaleString()}</div></div>`).join('');
+
+      // achievements
+      const ach = document.getElementById('achList'); ach.innerHTML = state.achievements.map(a=>`<div class="item"><div>${a.title}</div><div class="muted small">${new Date(a.time).toLocaleString()}</div></div>`).join('') || '<div class="muted small">Пока пусто</div>';
+
+      // catalog
+      const cat = document.getElementById('catalogList'); cat.innerHTML = state.catalog.map(c=>`<div class="item"><div>${c.title}</div><div style="display:flex;gap:8px;align-items:center"><div class="muted small">${fmt(c.price*100)}</div><button class="btn primary" data-buy="${c.id}">Купить</button></div></div>`).join('');
+
+      // attach buy handlers
+      document.querySelectorAll('[data-buy]').forEach(b=>b.onclick=()=>buyItem(Number(b.dataset.buy)));
+      // attach limit inputs
+      document.querySelectorAll('.limitInput').forEach(inp=>{ inp.onchange = ()=>{ const uid = Number(inp.dataset.uid); const v = Math.round(Number(inp.value||'0')*100); state.families.forEach(f=>{ const m = f.members.find(mm=>mm.userId===uid); if(m){ m.personalLimit = v; } }); save(state); syncUI(); toast('Лимит обновлён'); } });
+
+      save(state);
+    }
+
+    // actions
+    function addFeed(text){ state.feed.push(text); if(state.feed.length>200) state.feed.shift(); save(state); syncUI(); }
+
+    document.getElementById('dailyBonusBtn').onclick = ()=>{
+      const key = 'bonus_'+new Date().toISOString().slice(0,10);
+      if(localStorage.getItem(key)) return toast('Бонус уже получен сегодня');
+      const bonus = 5000; state.me.balance += bonus; localStorage.setItem(key,'1'); state.tx.push({type:'bonus',amount:bonus,title:'Ежедневный бонус',time:Date.now()}); addFeed('Получен ежедневный бонус '+fmt(bonus)); state.me.xp += 10; syncUI(); };
+
+    document.getElementById('openLoot').onclick = ()=>openLoot('common');
+    document.getElementById('openSmallBox').onclick = ()=>openLoot('common');
+    document.getElementById('openRareBox').onclick = ()=>openLoot('rare');
+
+    function openLoot(kind){ if(state.lootboxes[kind]<=0) return toast('Нет таких лутбоксов'); state.lootboxes[kind]--; const roll = Math.random(); let reward=0; let ach=null;
+      if(kind==='common'){ reward = Math.floor( (Math.random()*500 + 200) ); if(roll>0.98){ ach='Удачливый'; reward += 1500; } }
+      else { reward = Math.floor( (Math.random()*2000 + 800) ); if(roll>0.8) ach='Редкий удачливец'; }
+      state.me.balance += reward; state.tx.push({type:'loot',amount:reward,title:'Lootbox '+kind,time:Date.now()}); addFeed('Открыл '+kind+' — получил '+fmt(reward)); if(ach) state.achievements.push({title:ach,time:Date.now()}); state.me.xp += Math.round(reward/100); syncUI(); }
+
+    document.getElementById('sendBtn').onclick = ()=>{
+      const to = document.getElementById('toUser').value.trim(); const amount = Math.round(Number(document.getElementById('amount').value||0)*100);
+      if(!to||!amount) return toast('Заполните поля');
+      // find user
+      const toUser = state.users.find(u=>u.username===to);
+      if(!toUser) return toast('Пользователь не найден');
+      // check limits: personal, family, daily
+      const personalLimit = getPersonalLimit(state.me.id);
+      if(amount>personalLimit) return toast('Сумма больше персонального лимита');
+      if(!checkDailyLimit(amount)) return toast('Превышен дневной лимит');
+      if(state.me.balance<amount) return toast('Недостаточно средств');
+      state.me.balance -= amount; // receiver is simulated
+      state.tx.push({type:'transfer',amount:amount,title:'Перевод @'+to,time:Date.now()}); addDailySent(amount);
+      addFeed('Перевод '+fmt(amount)+' @'+to);
+      // xp + ach
+      state.me.xp += 5; if(state.me.xp>50 && !hasAch('first_big_transfer')){ state.achievements.push({title:'Щедрый',time:Date.now()}); }
+      syncUI();
+    }
+
+    function getPersonalLimit(userId){ // find from family membership, else fallback to account dailyLimit
+      for(const f of state.families){ const m = f.members.find(mm=>mm.userId===userId); if(m) return m.personalLimit || state.me.dailyLimit; }
+      return state.me.dailyLimit;
+    }
+
+    function checkDailyLimit(amount){ const key = 'sent_'+new Date().toISOString().slice(0,10); const sent = Number(localStorage.getItem(key)||'0'); return sent+amount <= state.me.dailyLimit; }
+    function addDailySent(amount){ const key = 'sent_'+new Date().toISOString().slice(0,10); const sent = Number(localStorage.getItem(key)||'0'); localStorage.setItem(key,String(sent+amount)); }
+
+    function hasAch(code){ return state.achievements.some(a=>a.code===code || a.title===code); }
+
+    // family actions
+    document.getElementById('createFam').onclick = ()=>{
+      const name = document.getElementById('famName').value.trim(); if(!name) return toast('Введите имя семьи');
+      const fam = {id:Date.now(),name,ownerId:state.me.id,budget:0,members:[{userId:state.me.id,role:'owner',personalLimit:state.me.dailyLimit}], created:Date.now()};
+      state.families.push(fam); addFeed('Создал семью '+name); syncUI(); toast('Семья создана');
+    }
+
+    // jobs — Miki-like scheduling: daily, weekly, monthly
+    document.getElementById('createJobBtn').onclick = ()=>{
+      const title = document.getElementById('jobTitle').value.trim(); const salary = Math.round(Number(document.getElementById('jobSalary').value||0)*100); const freq = document.getElementById('jobFreq').value;
+      if(!title||!salary) return toast('Заполните поля');
+      const job = {id:Date.now(),title,salary,freq,ownerId:state.me.id,nextRun:nextRunFor(freq)};
+      state.jobs.push(job); addFeed('Оформлен контракт '+title+' • '+fmt(salary)); syncUI(); toast('Контракт создан');
+    }
+
+    function nextRunFor(freq){ const now = new Date(); if(freq==='daily'){ now.setDate(now.getDate()+1); } else if(freq==='weekly'){ now.setDate(now.getDate()+7);} else { now.setMonth(now.getMonth()+1); } return now.toISOString(); }
+
+    // scheduler (runs every 10 seconds in demo) — in production should be backend cron/webhook
+    setInterval(()=>{
+      const now = Date.now();
+      state.jobs.forEach(j=>{
+        if(Date.parse(j.nextRun) <= now){ // pay salary
+          state.me.balance += j.salary; state.tx.push({type:'salary',amount:j.salary,title:'Зарплата '+j.title,time:Date.now()}); addFeed('Начислена зарплата '+fmt(j.salary)+' по контракту '+j.title);
+          j.nextRun = nextRunFor(j.freq);
+          state.me.xp += 10;
+          // chance for achievement
+          if(!hasAch('working_hero') && state.me.xp>100){ state.achievements.push({title:'Рабочая лошадка',time:Date.now()}); }
+        }
+      }); save(state); syncUI(); }, 10000);
+
+    // catalog buy
+    function buyItem(id){ const item = state.catalog.find(c=>c.id===id); if(!item) return; const price = item.price*100; if(state.me.balance<price) return toast('Недостаточно средств');
+      // family payments: if in family and owner has budget, allow family pay
+      const fam = state.families[0]; if(fam && fam.budget>=price){ fam.budget -= price; addFeed('Оплата '+item.title+' с семейного бюджета'); } else { state.me.balance -= price; addFeed('Оплата '+item.title); }
+      state.tx.push({type:'payment',amount:price,title:item.title,time:Date.now()});
+      // cashback
+      const cb = Math.floor(price * state.me.cashback/100); if(cb>0){ state.me.balance += cb; state.tx.push({type:'cashback',amount:cb,title:'Кешбэк '+item.title,time:Date.now()}); addFeed('Кешбэк '+fmt(cb)+' за '+item.title); }
+      state.me.xp += 5; syncUI(); toast('Оплачено '+item.title);
+    }
+
+    // export/import
+    document.getElementById('exportBtn').onclick = ()=>{ const data = JSON.stringify(state, null, 2); const blob = new Blob([data],{type:'application/json'}); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href=url; a.download='extra_orange_export.json'; a.click(); URL.revokeObjectURL(url); }
+
+    // wire tabs
+    document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{ document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active')); t.classList.add('active'); document.querySelectorAll('.view').forEach(v=>v.style.display='none'); document.getElementById(t.dataset.view).style.display='block'; if(t.dataset.view==='shop') syncUI(); });
+
+    // initial render
+    syncUI();
+
+    // optional: Telegram WebApp init (read-only) — if opened inside TG it can set username
+    try{
+      const tg = window.Telegram.WebApp; if(tg){ const user = tg.initDataUnsafe?.user; if(user && user.username){ state.me.username = user.username; save(state); syncUI(); } }
+    }catch(e){}
+
+  </script>
+</body>
+</html>
