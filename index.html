@@ -67,14 +67,16 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import { getFirestore, doc, getDoc, setDoc, updateDoc, addDoc, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyCm_LdgXd7sm40BrKaM3lpUSaRqJMnZsPQ",
-      authDomain: "extra-bank-310aa.firebaseapp.com",
-      projectId: "extra-bank-310aa",
-      storageBucket: "extra-bank-310aa.appspot.com",
-      messagingSenderId: "454185918906",
-      appId: "1:454185918906:web:812a701c407ec7dcec3d83"
-    };
+   const firebaseConfig = {
+  apiKey: "AIzaSyCm_LdgXd7sm40BrKaM3lpUSaRqJMnZsPQ",
+  authDomain: "extra-bank-310aa.firebaseapp.com",
+  projectId: "extra-bank-310aa",
+  storageBucket: "extra-bank-310aa.appspot.com", 
+  messagingSenderId: "454185918906",
+  appId: "1:454185918906:web:812a701c407ec7dcec3d83",
+  measurementId: "G-C7VVCG5TJT"
+};
+
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
