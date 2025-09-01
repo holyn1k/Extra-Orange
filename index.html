@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Extra Orange</title>
+  <style>
+    body{margin:0;font-family:Arial;background:#0b0b0c;color:#f6f6f7}
+    .top{display:flex;justify-content:space-between;align-items:center;padding:12px;border-bottom:1px solid rgba(255,255,255,0.05)}
+    .logo{font-weight:700;color:#ff7a00}
+    .balance{font-size:20px;font-weight:700}
+    main{padding:12px}
+    .card{background:#131315;padding:12px;border-radius:12px;margin-bottom:12px}
+    .btn{padding:8px 12px;border-radius:10px;border:none;cursor:pointer;font-weight:600}
+    .btn.primary{background:#ff7a00;color:#140b05}
+    .btn.ghost{background:transparent;border:1px solid rgba(255,255,255,0.05);color:#f6f6f7}
+    .item{padding:8px;border-radius:10px;background:rgba(255,255,255,0.03);margin-top:6px}
+    .muted{color:#9aa0a6;font-size:13px}
+    .tabs{display:flex;gap:6px;margin-bottom:12px}
+    .tab{padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.05);cursor:pointer}
+    .tab.active{background:linear-gradient(90deg,#ff7a00,#ff9a33);color:#140b05}
+    .toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#111;padding:10px 14px;border-radius:10px;display:none}
+  </style>
+</head>
+<body>
+  <div class="top">
+    <div class="logo">Extra Orange</div>
+    <div class="balance" id="balance">0 ORG</div>
+  </div>
+  <main>
+    <div class="tabs">
+      <div class="tab active" data-view="home">Главная</div>
+      <div class="tab" data-view="family">Семья</div>
+      <div class="tab" data-view="bank">Кредиты</div>
+    </div>
+
+    <section id="home" class="view">
+      <div class="card">
+        <div class="muted">Оранжевая карта</div>
+        <div class="balance" id="cardBalance">0 ORG</div>
+        <button class="btn primary" id="dailyBonusBtn">Ежедневный бонус</button>
+      </div>
+    </section>
+
+    <section id="family" class="view" style="display:none">
+      <div class="card">
+        <div class="muted">Семья</div>
+        <div id="familyInfo">—</div>
+        <input id="famName" placeholder="Название семьи"/>
+        <button class="btn primary" id="createFam">Создать семью</button>
+      </div>
+    </section>
+
+    <section id="bank" class="view" style="display:none">
+      <div class="card">
+        <div class="muted">Кредиты и депозиты</div>
+        <button class="btn ghost" id="takeCredit">Взять кредит</button>
+        <button class="btn ghost" id="makeDeposit">Сделать депозит</button>
+        <div id="creditsList"></div>
+      </div>
+    </section>
+  </main>
+
+  <div id="toast" class="toast"></div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getFirestore, doc, getDoc, setDoc, updateDoc, addDoc, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCm_LdgXd7sm40BrKaM3lpUSaRqJMnZsPQ",
+      authDomain: "extra-bank-310aa.firebaseapp.com",
+      projectId: "extra-bank-310aa",
+      storageBucket: "extra-bank-310aa.appspot.com",
+      messagingSenderId: "454185918906",
+      appId: "1:454185918906:web:812a701c407ec7dcec3d83"
+    };
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    function toast(t){const el=document.getElementById("toast");el.textContent=t;el.style.display="block";setTimeout(()=>el.style.display="none",2000);}
+    function fmt(v){return (v/100).toFixed(2)+" ORG";}
+
+    async function initUser(){
+      let uid="demo"; let username="demo";
+      try{
+        const tg=window.Telegram?.WebApp;
+        if(tg?.initDataUnsafe?.user){uid=String(tg.initDataUnsafe.user.id);username=tg.initDataUnsafe.user.username||("id"+uid);}
+      }catch(e){console.log("Demo mode");}
+
+      const ref=doc(db,"users",uid);
+      const snap=await getDoc(ref);
+      if(!snap.exists()){
+        await setDoc(ref,{username,balance:100000,familyId:null,role:"owner",credits:[],createdAt:Date.now()});
+      }
+      return {uid,ref};
+    }
+
+    initUser().then(async ({uid,ref})=>{
+      onSnapshot(ref,(snap)=>{
+        if(!snap.exists()) return;
+        const d=snap.data();
+        document.getElementById("balance").textContent=fmt(d.balance||0);
+        document.getElementById("cardBalance").textContent=fmt(d.balance||0);
+      });
+
+      // бонус
+      document.getElementById("dailyBonusBtn").onclick=async ()=>{
+        const snap=await getDoc(ref);const d=snap.data();
+        await updateDoc(ref,{balance:(d.balance||0)+5000});
+        toast("Бонус начислен!");
+      };
+
+      // создать семью
+      document.getElementById("createFam").onclick=async ()=>{
+        const name=document.getElementById("famName").value.trim();
+        if(!name) return toast("Введите имя");
+        const famRef=await addDoc(collection(db,"families"),{name,ownerId:uid,budget:0,taxRate:0.05,members:[{uid,role:"owner",limit:999999}]});
+        await updateDoc(ref,{familyId:famRef.id});
+        document.getElementById("familyInfo").textContent="Семья: "+name;
+        toast("Семья создана");
+      };
+
+      // кредиты
+      document.getElementById("takeCredit").onclick=async ()=>{
+        const snap=await getDoc(ref);const d=snap.data();
+        const credit=10000;
+        await updateDoc(ref,{balance:d.balance+credit,credits:[...(d.credits||[]),{amount:credit,ts:Date.now()}]});
+        toast("Выдан кредит "+fmt(credit));
+      };
+
+      // депозит
+      document.getElementById("makeDeposit").onclick=async ()=>{
+        const snap=await getDoc(ref);const d=snap.data();
+        const dep=5000;
+        if(d.balance<dep) return toast("Недостаточно средств");
+        await updateDoc(ref,{balance:d.balance-dep,credits:[...(d.credits||[]),{deposit:dep,ts:Date.now()}]});
+        toast("Оформлен депозит "+fmt(dep));
+      };
+    });
+
+    // tabs
+    document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>{
+      document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
+      t.classList.add("active");
+      document.querySelectorAll(".view").forEach(v=>v.style.display="none");
+      document.getElementById(t.dataset.view).style.display="block";
+    });
+  </script>
+</body>
+</html>
